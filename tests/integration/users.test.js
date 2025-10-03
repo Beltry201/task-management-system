@@ -9,7 +9,6 @@ describe('Users Integration Tests (Simple)', () => {
   let testUserId;
 
   beforeAll(async () => {
-    // Clean up any existing test data first
     try {
       const pool = require('../../src/config/database');
       await pool.query('DELETE FROM users WHERE email LIKE \'%quicktest%\' OR email LIKE \'%duplicatetest%\' OR email LIKE \'%crudtest%\'');
@@ -17,7 +16,6 @@ describe('Users Integration Tests (Simple)', () => {
       console.error('Pre-cleanup error:', error.message);
     }
 
-    // Login as admin to get token
     const loginResponse = await request(app)
       .post('/auth/login')
       .send({
@@ -29,7 +27,6 @@ describe('Users Integration Tests (Simple)', () => {
   });
 
   afterAll(async () => {
-    // Clean up test data
     try {
       const pool = require('../../src/config/database');
       await pool.query('DELETE FROM users WHERE email LIKE \'%quicktest%\' OR email LIKE \'%duplicatetest%\' OR email LIKE \'%crudtest%\'');
@@ -39,7 +36,6 @@ describe('Users Integration Tests (Simple)', () => {
   });
 
   beforeEach(async () => {
-    // Clean up any partial test data before each test
     try {
       const pool = require('../../src/config/database');
       if (testUserId) {
@@ -47,20 +43,17 @@ describe('Users Integration Tests (Simple)', () => {
         testUserId = undefined;
       }
     } catch (error) {
-      // Ignore cleanup errors
     }
   });
 
   describe('User Creation', () => {
     beforeEach(async () => {
-      // Ensure clean state for user creation tests
       if (testUserId) {
         try {
           const pool = require('../../src/config/database');
           await pool.query('DELETE FROM users WHERE id = $1', [testUserId]);
           testUserId = undefined;
         } catch (error) {
-          // Ignore cleanup errors
         }
       }
     });
@@ -89,7 +82,6 @@ describe('Users Integration Tests (Simple)', () => {
     });
 
     it('should reject duplicate email', async () => {
-      // Create a user first
       const newUser = {
         name: 'First User',
         email: 'duplicatetest@example.com',
@@ -103,7 +95,6 @@ describe('Users Integration Tests (Simple)', () => {
         .send(newUser)
         .expect(201);
 
-      // Try to create another user with same email
       const duplicateUser = {
         name: 'Another User',
         email: 'duplicatetest@example.com', // Same email
@@ -119,7 +110,6 @@ describe('Users Integration Tests (Simple)', () => {
 
       expect(response.body.error).toBe('Email already registered');
 
-      // Clean up the created user
       const pool = require('../../src/config/database');
       await pool.query('DELETE FROM users WHERE email = $1', ['duplicatetest@example.com']);
     });
@@ -148,7 +138,6 @@ describe('Users Integration Tests (Simple)', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data.users).toBeDefined();
 
-      // All returned users should have 'user' role
       response.body.data.users.forEach(user => {
         expect(user.role).toBe('user');
       });
@@ -163,6 +152,7 @@ describe('Users Integration Tests (Simple)', () => {
         const pool = require('../../src/config/database');
         await pool.query('DELETE FROM users WHERE email = $1', ['crudtest@example.com']);
       } catch (error) {
+        console.error('Cleanup error:', error.message);
       }
 
       const newUser = {

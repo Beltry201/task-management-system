@@ -1,18 +1,13 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
 
 const userRepository = require('../repositories/userRepository');
 const AppError = require('../utils/AppError');
-
-
-function uuidv4() {
-  return crypto.randomUUID();
-}
+const { generateUuid } = require('../utils/id');
 
 /**
  * Register new user
- * @abstract {Object} userData - User registration data
+ * @param {Object} userData - User registration data
  * @returns {Object} Created user and JWT token
  */
 const register = async (userData) => {
@@ -27,7 +22,7 @@ const register = async (userData) => {
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
 
-    const id = uuidv4();
+    const id = generateUuid();
 
     const userForDB = {
       id,
@@ -63,8 +58,8 @@ const register = async (userData) => {
 
 /**
  * Login user
- * @abstract {string} email - User email
- * @abstract {string} password - User password
+ * @param {string} email - User email
+ * @param {string} password - User password
  * @returns {Object} User data and JWT token
  */
 const login = async (email, password) => {
@@ -98,10 +93,10 @@ const login = async (email, password) => {
 
 /**
  * Generate JWT token
- * @abstract {Object} payload - Token payload
- * @abstract {string} payload.id - User ID
- * @abstract {string} payload.email - User email
- * @abstract {string} payload.role - User role
+ * @param {Object} payload - Token payload
+ * @param {string} payload.id - User ID
+ * @param {string} payload.email - User email
+ * @param {string} payload.role - User role
  * @returns {string} JWT token
  */
 const generateToken = (payload) => {

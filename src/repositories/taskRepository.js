@@ -1,9 +1,5 @@
 const pool = require('../config/database');
-const crypto = require('crypto');
-
-function uuidv4() {
-  return crypto.randomUUID();
-}
+const { generateUuid } = require('../utils/id');
 
 /**
  * Build dynamic WHERE clause for filtering
@@ -284,5 +280,5 @@ module.exports = {
   delete: deleteById,
   findByUserId,
   countByUserId,
-  uuidv4
+  generateUuid
 };

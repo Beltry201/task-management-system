@@ -1,11 +1,6 @@
 const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
 const pool = require('../src/config/database');
-
-// Generate UUID v4 using crypto
-function uuidv4() {
-  return crypto.randomUUID();
-}
+const { generateUuid } = require('../src/utils/id');
 
 /**
  * Seed script for creating sample data
@@ -17,14 +12,14 @@ async function seedDatabase() {
     // Sample users data
     const users = [
       {
-        id: uuidv4(),
+        id: generateUuid(),
         name: 'Admin User',
         email: 'admin@example.com',
         password: 'admin123',
         role: 'admin'
       },
       {
-        id: uuidv4(),
+        id: generateUuid(),
         name: 'Regular User',
         email: 'user@example.com',
         password: 'user123',
@@ -52,7 +47,7 @@ async function seedDatabase() {
     // Sample tasks data
     const tasks = [
       {
-        id: uuidv4(),
+        id: generateUuid(),
         title: 'Set up database schema',
         description: 'Create database tables and migrations for the task management system',
         status: 'completed',
@@ -61,7 +56,7 @@ async function seedDatabase() {
         created_by: users[0].id // Admin user;
       },
       {
-        id: uuidv4(),
+        id: generateUuid(),
         title: 'Implement user authentication',
         description: 'Add JWT-based authentication system with login/register endpoints',
         status: 'in_progress',
@@ -70,7 +65,7 @@ async function seedDatabase() {
         created_by: users[0].id // Admin user
       },
       {
-        id: uuidv4(),
+        id: generateUuid(),
         title: 'Build task CRUD operations',
         description: 'Create API endpoints for creating, reading, updating, and deleting tasks',
         status: 'pending',
@@ -79,7 +74,7 @@ async function seedDatabase() {
         created_by: users[0].id // Admin user
       },
       {
-        id: uuidv4(),
+        id: generateUuid(),
         title: 'Design frontend interface',
         description: 'Create user-friendly interface for task management',
         status: 'pending',
@@ -88,7 +83,7 @@ async function seedDatabase() {
         created_by: users[1].id // Regular user
       },
       {
-        id: uuidv4(),
+        id: generateUuid(),
         title: 'Add email notifications',
         description: 'Implement email notifications for task assignments and due dates',
         status: 'pending',

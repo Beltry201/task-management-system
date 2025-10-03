@@ -1,7 +1,20 @@
 const taskRepository = require('../repositories/taskRepository');
 const userRepository = require('../repositories/userRepository');
 const AppError = require('../utils/AppError');
-const { uuidv4 } = taskRepository;
+const { generateUuid } = taskRepository;
+
+/**
+ * Map sort fields to database column names
+ */
+function mapSortField(sortBy) {
+  const sortMap = {
+    createdAt: 'created_at',
+    dueDate: 'due_date',
+    priority: 'priority',
+    status: 'status'
+  };
+  return sortMap[sortBy] || 'created_at';
+}
 
 /**
  * Get tasks with filtering and pagination
@@ -38,7 +51,7 @@ const getTasks = async ({ page, limit, status, priority, assignedTo, sortBy, ord
         LEFT JOIN users assigned_user ON tasks.assigned_to = assigned_user.id
         LEFT JOIN users creator ON tasks.created_by = creator.id
         WHERE (tasks.created_by = $1 OR tasks.assigned_to = $1)
-        ORDER BY tasks.${taskRepository.mapSortField ? taskRepository.mapSortField(sortBy) : 'created_at'} ${order.toUpperCase()}
+        ORDER BY tasks.${mapSortField(sortBy)} ${order.toUpperCase()}
         LIMIT $2 OFFSET $3
       `;
 
@@ -112,7 +125,7 @@ const createTask = async ({ title, description, status, priority, dueDate, assig
       }
     }
 
-    const taskId = uuidv4();
+    const taskId = generateUuid();
     const taskData = {
       id: taskId,
       title,
