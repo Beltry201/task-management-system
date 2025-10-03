@@ -19,6 +19,8 @@
     "seed": "node scripts/seed.js"
   },
   "devDependencies": {
-    "serverless-offline": "^14.4.0"
+    "jest": "^30.2.0",
+    "serverless-offline": "^14.4.0",
+    "supertest": "^7.1.4"
   }
 }

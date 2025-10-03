@@ -1,0 +1,131 @@
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+
+const userRepository = require('../repositories/userRepository');
+const AppError = require('../utils/AppError');
+
+
+function uuidv4() {
+  return crypto.randomUUID();
+}
+
+/**
+ * Register new user
+ * @abstract {Object} userData - User registration data
+ * @returns {Object} Created user and JWT token
+ */
+const register = async (userData) => {
+  try {
+    const { email, password } = userData;
+
+    // Check if email already exists
+    const existingUser = await userRepository.findByEmail(email);
+    if (existingUser) {
+      throw new AppError('Email already registered', 409);
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const password_hash = await bcrypt.hash(password, saltRounds);
+
+    // Generate UUID for user ID
+    const id = uuidv4();
+
+    // Prepare user data for database
+    const userForDB = {
+      id,
+      name: userData.name,
+      email: userData.email,
+      password_hash,
+      phone_number: userData.phoneNumber || null,
+      address_line1: userData.address?.addressLine1 || null,
+      address_line2: userData.address?.addressLine2 || null,
+      city: userData.address?.city || null,
+      state_or_province: userData.address?.stateOrProvince || null,
+      postal_code: userData.address?.postalCode || null,
+      country: userData.address?.country || null,
+      role: userData.role || 'user'
+    };
+
+    // Create user in database
+    const createdUser = await userRepository.create(userForDB);
+
+    // Generate JWT token
+    const token = generateToken({
+      id: createdUser.id,
+      email: createdUser.email,
+      role: createdUser.role
+    });
+
+    return {
+      user: createdUser,
+      token
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Login user
+ * @abstract {string} email - User email
+ * @abstract {string} password - User password
+ * @returns {Object} User data and JWT token
+ */
+const login = async (email, password) => {
+  try {
+    // Find user by email
+    const user = await userRepository.findByEmail(email);
+    if (!user) {
+      throw new AppError('Invalid credentials', 401);
+    }
+
+    // Compare password with stored hash
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    if (!isPasswordValid) {
+      throw new AppError('Invalid credentials', 401);
+    }
+
+    // Generate JWT token
+    const token = generateToken({
+      id: user.id,
+      email: user.email,
+      role: user.role
+    });
+
+    // Remove password_hash from response
+    const { password_hash, ...userWithoutPassword } = user;
+
+    return {
+      user: userWithoutPassword,
+      token
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Generate JWT token
+ * @abstract {Object} payload - Token payload
+ * @abstract {string} payload.id - User ID
+ * @abstract {string} payload.email - User email
+ * @abstract {string} payload.role - User role
+ * @returns {string} JWT token
+ */
+const generateToken = (payload) => {
+  try {
+    return jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+    });
+  } catch (error) {
+    throw new AppError('Token generation failed', 500);
+  }
+};
+
+module.exports = {
+  register,
+  login,
+  generateToken
+};
