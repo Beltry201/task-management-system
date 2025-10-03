@@ -55,6 +55,10 @@ const findAll = async ({ limit, offset, status, priority, assignedTo, sortBy = '
     const { whereClause, values } = buildWhereClause(filters);
 
     const sortField = mapSortField(sortBy);
+    const safeOrder = (typeof order === 'string' && ['asc', 'desc'].includes(order.toLowerCase())) ? order.toUpperCase() : 'DESC';
+    const safeLimit = Number.isFinite(Number(limit)) && Number(limit) > 0 ? Number(limit) : 10;
+    const safeOffset = Number.isFinite(Number(offset)) && Number(offset) >= 0 ? Number(offset) : 0;
+
     let paramIndex = values.length + 1;
 
     const query = `
@@ -66,11 +70,11 @@ const findAll = async ({ limit, offset, status, priority, assignedTo, sortBy = '
       LEFT JOIN users assigned_user ON tasks.assigned_to = assigned_user.id
       LEFT JOIN users creator ON tasks.created_by = creator.id
       ${whereClause}
-      ORDER BY tasks.${sortField} ${order.toUpperCase()}
+      ORDER BY tasks.${sortField} ${safeOrder}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
-    const allValues = [...values, limit, offset];
+    const allValues = [...values, safeLimit, safeOffset];
     const result = await pool.query(query, allValues);
     return result.rows;
   } catch (error) {

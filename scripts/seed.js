@@ -33,15 +33,16 @@ async function seedDatabase() {
       delete user.password;
     }
 
-    // Insert users
+    // Insert users (idempotent)
     console.log('Creating sample users...');
     for (const user of users) {
       const query = `
         INSERT INTO users (id, name, email, password_hash, role)
         VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (email) DO NOTHING
       `;
       await pool.query(query, [user.id, user.name, user.email, user.password_hash, user.role]);
-      console.log(`✅ Created user: ${user.email} (${user.role})`);
+      console.log(`✅ Created or skipped user: ${user.email} (${user.role})`);
     }
 
     // Sample tasks data

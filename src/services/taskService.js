@@ -21,7 +21,10 @@ function mapSortField(sortBy) {
  */
 const getTasks = async ({ page, limit, status, priority, assignedTo, sortBy, order, userId, userRole }) => {
   try {
-    const offset = (page - 1) * limit;
+    const safePage = Number.isInteger(Number(page)) && Number(page) > 0 ? Number(page) : 1;
+    const safeLimit = Number.isInteger(Number(limit)) && Number(limit) > 0 && Number(limit) <= 100 ? Number(limit) : 10;
+    const safeOrder = (typeof order === 'string' && ['asc', 'desc'].includes(order.toLowerCase())) ? order.toUpperCase() : 'DESC';
+    const offset = (safePage - 1) * safeLimit;
 
     let finalAssignedTo = assignedTo;
     if (userRole === 'user') {
@@ -29,13 +32,13 @@ const getTasks = async ({ page, limit, status, priority, assignedTo, sortBy, ord
     }
 
     const filters = {
-      limit,
+      limit: safeLimit,
       offset,
       status,
       priority,
       assignedTo: finalAssignedTo,
       sortBy,
-      order
+      order: safeOrder
     };
 
     let tasks;
@@ -51,31 +54,31 @@ const getTasks = async ({ page, limit, status, priority, assignedTo, sortBy, ord
         LEFT JOIN users assigned_user ON tasks.assigned_to = assigned_user.id
         LEFT JOIN users creator ON tasks.created_by = creator.id
         WHERE (tasks.created_by = $1 OR tasks.assigned_to = $1)
-        ORDER BY tasks.${mapSortField(sortBy)} ${order.toUpperCase()}
+        ORDER BY tasks.${mapSortField(sortBy)} ${safeOrder}
         LIMIT $2 OFFSET $3
       `;
 
       const pool = require('../config/database');
-      const result = await pool.query(combinedQuery, [userId, limit, offset]);
+      const result = await pool.query(combinedQuery, [userId, safeLimit, offset]);
       tasks = result.rows;
 
       const countResult = await pool.query(
         'SELECT COUNT(*) as total FROM tasks WHERE (created_by = $1 OR assigned_to = $1)',
         [userId]
       );
-      total = parseInt(countResult.rows[0].total);
+      total = parseInt(countResult.rows[0].total, 10);
     } else {
       tasks = await taskRepository.findAll(filters);
       total = await taskRepository.count(filters);
     }
 
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = Math.ceil(total / safeLimit);
 
     return {
       tasks,
       pagination: {
-        page,
-        limit,
+        page: safePage,
+        limit: safeLimit,
         total,
         totalPages
       }
