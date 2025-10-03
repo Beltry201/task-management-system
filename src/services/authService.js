@@ -19,20 +19,16 @@ const register = async (userData) => {
   try {
     const { email, password } = userData;
 
-    // Check if email already exists
     const existingUser = await userRepository.findByEmail(email);
     if (existingUser) {
       throw new AppError('Email already registered', 409);
     }
 
-    // Hash password
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
 
-    // Generate UUID for user ID
     const id = uuidv4();
 
-    // Prepare user data for database
     const userForDB = {
       id,
       name: userData.name,
@@ -48,10 +44,8 @@ const register = async (userData) => {
       role: userData.role || 'user'
     };
 
-    // Create user in database
     const createdUser = await userRepository.create(userForDB);
 
-    // Generate JWT token
     const token = generateToken({
       id: createdUser.id,
       email: createdUser.email,
@@ -75,26 +69,22 @@ const register = async (userData) => {
  */
 const login = async (email, password) => {
   try {
-    // Find user by email
     const user = await userRepository.findByEmail(email);
     if (!user) {
       throw new AppError('Invalid credentials', 401);
     }
 
-    // Compare password with stored hash
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
       throw new AppError('Invalid credentials', 401);
     }
 
-    // Generate JWT token
     const token = generateToken({
       id: user.id,
       email: user.email,
       role: user.role
     });
 
-    // Remove password_hash from response
     const { password_hash, ...userWithoutPassword } = user;
 
     return {
