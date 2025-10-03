@@ -1,19 +1,99 @@
-# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+
 org: eidos
-# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
 app: task-management-app
-# "service" is the name of this project. This will also be added to your AWS resource names.
 service: task-management-system
+frameworkVersion: '4'
 
 provider:
   name: aws
   runtime: nodejs20.x
-  # Uncomment to easily set up a custom domain. Read the docs for more details:
-  # https://www.serverless.com/framework/docs/providers/aws/guide/domains
-  # domain: api.example.com
+  region: ${opt:region, 'us-east-1'}
+  stage: ${opt:stage, 'dev'}
+  
+  # Environment variables accessible to all functions
+  environment:
+    NODE_ENV: ${self:provider.stage}
+    DATABASE_URL: ${env:DATABASE_URL}
+    JWT_SECRET: ${env:JWT_SECRET}
+    JWT_EXPIRES_IN: ${env:JWT_EXPIRES_IN, '7d'}
+    OPENAI_API_KEY: ${env:OPENAI_API_KEY, ''}
+  
+  # API Gateway configuration
+  httpApi:
+    cors:
+      allowedOrigins:
+        - http://localhost:3000
+        - http://localhost:5173
+        - https://gg6fw33qeb.execute-api.us-east-1.amazonaws.com/
+      allowedHeaders:
+        - Content-Type
+        - Authorization
+        - X-Amz-Date
+        - X-Api-Key
+        - X-Amz-Security-Token
+      allowedMethods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+      allowCredentials: false
+      maxAge: 6000
+    
+    # Throttling to prevent abuse
+    throttle:
+      burstLimit: 200   # Max concurrent requests
+      rateLimit: 100    # Requests per second
 
+  # Memory and timeout settings
+  memorySize: 512 # MB (adjust based on needs)
+  timeout: 30 # seconds (API Gateway max is 30s)
+
+# Lambda functions
 functions:
   api:
     handler: handler.handler
+    description: Main API endpoint for task management system
     events:
-      - httpApi: "*"
+      - httpApi: '*'
+  
+# Plugins
+plugins:
+  - serverless-offline
+
+# Custom configuration
+custom:
+  # Serverless Offline configuration for local development
+  serverless-offline:
+    httpPort: 3000
+    websocketPort: 3001
+    lambdaPort: 3002
+    noPrependStageInUrl: true
+    
+  # Stage-specific settings
+  stages:
+    dev:
+      memorySize: 512
+      timeout: 30
+    prod:
+      memorySize: 1024
+      timeout: 30
+
+# Package configuration
+package:
+  individually: false
+  patterns:
+    - '!node_modules/**'
+    - '!tests/**'
+    - '!.env*'
+    - '!.git/**'
+    - '!.vscode/**'
+    - '!coverage/**'
+    - '!*.md'
+    - '!.eslintrc.js'
+    - '!.prettierrc'
+    - 'handler.js'
+    - 'src/**'
+    - 'migrations/**'
+    - 'package.json'
+    - 'package-lock.json'
