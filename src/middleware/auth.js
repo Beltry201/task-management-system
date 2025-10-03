@@ -25,7 +25,7 @@ const authenticate = async (req, res, next) => {
  * Authorize middleware - checks user permissions
  * @param {Array} allowedRoles - Array of allowed roles
  */
-const authorize = (...allowedRoles) => {
+const authorize = (allowedRoles) => {
   return (req, res, next) => {
     try {
       if (!req.user) {

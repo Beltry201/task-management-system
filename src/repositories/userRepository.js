@@ -78,25 +78,46 @@ const create = async (userData) => {
 };
 
 /**
- * Find all users with pagination
- * @abstract {Object} options - Pagination options
+ * Find all users with pagination and filtering
+ * @abstract {Object} options - Query options
  * @abstract {number} options.limit - Number of users to return
  * @abstract {number} options.offset - Number of users to skip
+ * @abstract {string} options.role - Filter by role
+ * @abstract {string} options.sortBy - Sort field
+ * @abstract {string} options.order - Sort order (ASC/DESC)
  * @returns {Array} Array of users without password_hash
  */
-const findAll = async ({ limit = 10, offset = 0 } = {}) => {
+const findAll = async ({ limit, offset, role, sortBy, order } = {}) => {
   try {
-    const query = `
+    let query = `
       SELECT 
         id, name, email, phone_number, address_line1, address_line2,
         city, state_or_province, postal_code, country, role,
         created_at, updated_at
       FROM users
-      ORDER BY created_at DESC
-      LIMIT $1 OFFSET $2
     `;
 
-    const result = await pool.query(query, [limit, offset]);
+    const values = [];
+    let paramIndex = 1;
+
+    if (role) {
+      query += ` WHERE role = $${paramIndex}`;
+      values.push(role);
+      paramIndex++;
+    }
+    const sortFieldMap = {
+      'createdAt': 'created_at',
+      'name': 'name',
+      'email': 'email'
+    };
+    const sortField = sortFieldMap[sortBy] || 'created_at';
+
+    query += ` ORDER BY ${sortField} ${order}`;
+
+    query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    values.push(limit, offset);
+
+    const result = await pool.query(query, values);
     return result.rows;
   } catch (error) {
     throw error;
@@ -104,23 +125,102 @@ const findAll = async ({ limit = 10, offset = 0 } = {}) => {
 };
 
 /**
- * Count total number of users
- * @abstract {number} Total count of users
+ * Count total number of users with optional role filter
+ * @abstract {Object} options - Query options
+ * @abstract {string} options.role - Filter by role
+ * @returns {number} Total count of users
  */
-const count = async () => {
+const count = async ({ role } = {}) => {
   try {
-    const query = 'SELECT COUNT(*) as total FROM users';
-    const result = await pool.query(query);
+    let query = 'SELECT COUNT(*) as total FROM users';
+    const values = [];
+
+    if (role) {
+      query += ' WHERE role = $1';
+      values.push(role);
+    }
+
+    const result = await pool.query(query, values);
     return parseInt(result.rows[0].total);
   } catch (error) {
     throw error;
   }
 };
 
+/**
+ * Update user by ID
+ * @abstract {string} id - User ID
+ * @abstract {Object} userData - Update data object
+ * @returns {Object} Updated user without password_hash
+ */
+const update = async (id, userData) => {
+  try {
+    const updates = [];
+    const values = [id];
+    let paramIndex = 2;
+
+    for (const key in userData) {
+      if (userData.hasOwnProperty(key)) {
+        const snakeCaseKey = camelToSnakeCase(key);
+        updates.push(`${snakeCaseKey} = $${paramIndex}`);
+        values.push(userData[key]);
+        paramIndex++;
+      }
+    }
+
+    if (updates.length === 0) {
+      return findById(id);
+    }
+
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+
+    const query = `
+      UPDATE users
+      SET ${updates.join(', ')}
+      WHERE id = $1
+      RETURNING 
+        id, name, email, phone_number, address_line1, address_line2,
+        city, state_or_province, postal_code, country, role,
+        created_at, updated_at
+    `;
+
+    const result = await pool.query(query, values);
+    return result.rows[0] || null;
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Delete user by ID
+ * @abstract {string} id - User ID
+ * @returns {boolean} Success indicator
+ */
+const deleteById = async (id) => {
+  try {
+    const query = 'DELETE FROM users WHERE id = $1';
+    const result = await pool.query(query, [id]);
+    return result.rowCount > 0;
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Helper function to convert camelCase to snake_case
+ * @abstract {string} str - CamelCase string
+ * @returns {string} snake_case string
+ */
+function camelToSnakeCase(str) {
+  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+}
+
 module.exports = {
   findByEmail,
   findById,
   create,
   findAll,
-  count
+  count,
+  update,
+  deleteById
 };

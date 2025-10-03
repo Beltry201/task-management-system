@@ -3,6 +3,7 @@ const app = express();
 
 const authRoutes = require('./routes/auth');
 const taskRoutes = require('./routes/tasks');
+const userRoutes = require('./routes/users');
 const errorHandler = require('./middleware/errorHandler');
 
 app.use(express.json());
@@ -13,6 +14,7 @@ app.get('/', (req, res) => {
 
 app.use('/auth', authRoutes);
 app.use('/tasks', taskRoutes);
+app.use('/users', userRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Not Found' });

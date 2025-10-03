@@ -6,6 +6,7 @@ const { authenticate } = require('../middleware/auth');
 const validateRequest = require('../middleware/validateRequest');
 const validateQuery = require('../middleware/validateQuery');
 const { createTaskSchema, updateTaskSchema, taskQuerySchema } = require('../validators/taskValidator');
+const { assignTaskSchema } = require('../validators/userValidator');
 
 /**
  * Task routes
@@ -30,6 +31,6 @@ router.put('/:id', validateRequest(updateTaskSchema), taskController.updateTask)
 router.delete('/:id', taskController.deleteTask);
 
 // POST /tasks/:id/assign - Assign task to user
-router.post('/:id/assign', taskController.assignTask);
+router.post('/:id/assign', validateRequest(assignTaskSchema), taskController.assignTask);
 
 module.exports = router;
