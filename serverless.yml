@@ -18,6 +18,11 @@ provider:
     JWT_EXPIRES_IN: ${env:JWT_EXPIRES_IN, '7d'}
     OPENAI_API_KEY: ${env:OPENAI_API_KEY, ''}
   
+  # CloudWatch Logs configuration
+  logs:
+    restApi: true
+    httpApi: true
+  
   # API Gateway configuration
   httpApi:
     cors:
@@ -56,6 +61,8 @@ functions:
     description: Main API endpoint for task management system
     events:
       - httpApi: '*'
+    # CloudWatch Logs configuration
+    logRetentionInDays: 14
   
 # Plugins
 plugins:

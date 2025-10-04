@@ -3,19 +3,22 @@ const jwt = require('jsonwebtoken');
 
 const userRepository = require('../repositories/userRepository');
 const AppError = require('../utils/AppError');
+const logger = require('../utils/logger');
 const { generateUuid } = require('../utils/id');
 
 /**
  * Register new user
  * @param {Object} userData - User registration data
+ * @param {Object} req - Express request object (optional)
  * @returns {Object} Created user and JWT token
  */
-const register = async (userData) => {
+const register = async (userData, req = null) => {
   try {
     const { email, password } = userData;
 
     const existingUser = await userRepository.findByEmail(email);
     if (existingUser) {
+      logger.logEvent('USER_REGISTRATION_FAILED', { reason: 'email_exists', email }, req);
       throw new AppError('Email already registered', 409);
     }
 
@@ -47,6 +50,8 @@ const register = async (userData) => {
       role: createdUser.role
     });
 
+    logger.logEvent('USER_REGISTERED', { userId: createdUser.id, email: createdUser.email }, req);
+
     return {
       user: createdUser,
       token
@@ -60,17 +65,20 @@ const register = async (userData) => {
  * Login user
  * @param {string} email - User email
  * @param {string} password - User password
+ * @param {Object} req - Express request object (optional)
  * @returns {Object} User data and JWT token
  */
-const login = async (email, password) => {
+const login = async (email, password, req = null) => {
   try {
     const user = await userRepository.findByEmail(email);
     if (!user) {
+      logger.logEvent('LOGIN_FAILED', { reason: 'user_not_found', email }, req);
       throw new AppError('Invalid credentials', 401);
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
+      logger.logEvent('LOGIN_FAILED', { reason: 'invalid_password', email }, req);
       throw new AppError('Invalid credentials', 401);
     }
 
@@ -81,6 +89,8 @@ const login = async (email, password) => {
     });
 
     const { password_hash, ...userWithoutPassword } = user;
+
+    logger.logEvent('USER_LOGGED_IN', { userId: user.id, email: user.email }, req);
 
     return {
       user: userWithoutPassword,

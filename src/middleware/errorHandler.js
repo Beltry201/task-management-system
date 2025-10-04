@@ -1,17 +1,19 @@
 const AppError = require('../utils/AppError');
+const logger = require('../utils/logger');
 
 /**
- * Centralized error handling middleware
+ * Centralized error handling middleware with logging
  */
 const errorHandler = (err, req, res, next) => {
-  // Log error to console with stack trace
-  console.error('Error:', err.stack);
+  logger.logError(err, req, {
+    body: req.body,
+    query: req.query,
+    params: req.params
+  });
 
-  // Set default status code and message
   let statusCode = err.statusCode || 500;
   let message = err.message || 'Internal Server Error';
 
-  // Handle specific error types
   if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
     // JWT errors
     statusCode = 401;
@@ -26,13 +28,11 @@ const errorHandler = (err, req, res, next) => {
     message = 'Database connection error';
   }
 
-  // Prepare error response
   const response = {
     success: false,
     error: message
   };
 
-  // Include stack trace in development
   if (process.env.NODE_ENV === 'development') {
     response.stack = err.stack;
   }
