@@ -7,13 +7,11 @@ const logger = require('../utils/logger');
 const requestLogger = (req, res, next) => {
   const startTime = Date.now();
 
-  // Override res.end to capture response time
-  const originalEnd = res.end;
-  res.end = function (...args) {
+  // Log when response has finished
+  res.on('finish', () => {
     const duration = Date.now() - startTime;
     logger.logRequest(req, res, duration);
-    originalEnd.apply(this, args);
-  };
+  });
 
   next();
 };

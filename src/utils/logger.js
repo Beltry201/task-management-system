@@ -6,6 +6,7 @@ const logger = {
    * @param {number} duration - Request duration in ms
    */
   logRequest: (req, res, duration) => {
+    const clientIp = (req.ip || req.headers['x-forwarded-for'] || '').toString().split(',')[0] || 'unknown';
     const logData = {
       type: 'REQUEST',
       method: req.method,
@@ -13,12 +14,12 @@ const logger = {
       statusCode: res.statusCode,
       duration: `${duration}ms`,
       userAgent: req.get('User-Agent'),
-      ip: req.ip || req.connection.remoteAddress,
+      ip: clientIp,
       userId: req.user?.id || null,
       timestamp: new Date().toISOString()
     };
 
-    if (req.path !== '/' && req.method !== 'OPTIONS') {
+    if (req.path !== '/' && req.method !== 'OPTIONS' && res.headersSent !== false) {
       console.log(JSON.stringify(logData));
     }
   },
