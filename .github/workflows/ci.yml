@@ -23,7 +23,7 @@ jobs:
 
     env:
       # Connect to RDS database for CI
-      DATABASE_URL: postgresql://postgres:0iYWMfEApsG68d2bWdzc@db-taks-management.c1s8o6q2ux5b.us-east-1.rds.amazonaws.com:5432/task_management?sslmode=require
+      DATABASE_URL: postgresql://postgres:SdIAGIH5nSh40ukofWrC@db-task-management.c1s8o6q2ux5b.us-east-1.rds.amazonaws.com:5432/task_management?sslmode=require
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
       JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
