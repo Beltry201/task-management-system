@@ -3,7 +3,6 @@ const router = express.Router();
 
 const taskController = require('../controllers/taskController');
 const { authenticate } = require('../middleware/auth');
-const taskController = require('../controllers/taskController');
 const validateRequest = require('../middleware/validateRequest');
 const validateQuery = require('../middleware/validateQuery');
 const { createTaskSchema, updateTaskSchema, taskQuerySchema } = require('../validators/taskValidator');
