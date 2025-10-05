@@ -23,10 +23,12 @@ jobs:
 
     env:
       # Use local Postgres service for CI (standard practice)
+      NODE_ENV: test
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/taskdb
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      DATABASE_SSL: false
+      JWT_SECRET: test-jwt-secret-key-for-testing-only
+      JWT_EXPIRES_IN: 7d
+      OPENAI_API_KEY: ""
 
     steps:
       - uses: actions/checkout@v4

@@ -4,7 +4,7 @@
 const path = require('path');
 
 if (!process.env.AWS_EXECUTION_ENV) {
-  const envPath = path.resolve(process.cwd(), '.env');
+  const envPath = path.resolve(process.cwd(), process.env.NODE_ENV === 'test' ? '.env.test' : '.env');
   require('dotenv').config({ path: envPath });
 }
 
