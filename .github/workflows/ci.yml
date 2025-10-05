@@ -22,8 +22,8 @@ jobs:
           --health-cmd="pg_isready -U postgres" --health-interval=10s --health-timeout=5s --health-retries=5
 
     env:
-      # Connect to RDS database for CI
-      DATABASE_URL: postgresql://postgres:SdIAGIH5nSh40ukofWrC@db-task-management.c1s8o6q2ux5b.us-east-1.rds.amazonaws.com:5432/task_management?sslmode=disable
+      # Use local Postgres service for CI (standard practice)
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/taskdb
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
       JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
