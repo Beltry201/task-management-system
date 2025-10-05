@@ -11,7 +11,7 @@ const ssl = env.databaseSsl
 
 const pool = new Pool({
   connectionString: env.databaseUrl,
-  ssl,
+  ssl: false, // Force SSL to false for local development
   max: 2,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
