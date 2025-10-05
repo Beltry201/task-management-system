@@ -18,6 +18,11 @@ provider:
     JWT_EXPIRES_IN: ${env:JWT_EXPIRES_IN, '7d'}
     OPENAI_API_KEY: ${env:OPENAI_API_KEY, ''}
   
+  # CloudWatch Logs configuration
+  logs:
+    restApi: true
+    httpApi: true
+  
   # API Gateway configuration
   httpApi:
     cors:
@@ -39,11 +44,7 @@ provider:
         - OPTIONS
       allowCredentials: false
       maxAge: 6000
-    
-    # Throttling to prevent abuse
-    throttle:
-      burstLimit: 200   # Max concurrent requests
-      rateLimit: 100    # Requests per second
+  
 
   # Memory and timeout settings
   memorySize: 512 # MB (adjust based on needs)
@@ -56,6 +57,8 @@ functions:
     description: Main API endpoint for task management system
     events:
       - httpApi: '*'
+    # CloudWatch Logs configuration
+    logRetentionInDays: 14
   
 # Plugins
 plugins:

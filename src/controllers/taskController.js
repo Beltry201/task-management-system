@@ -1,4 +1,5 @@
 const taskService = require('../services/taskService');
+const taskSummaryService = require('../services/taskSummaryService');
 
 /**
  * Get all tasks with filtering and pagination
@@ -18,7 +19,7 @@ const getAllTasks = async (req, res, next) => {
       order: queryParams.order,
       userId,
       userRole
-    });
+    }, req);
 
     res.status(200).json({
       success: true,
@@ -40,7 +41,7 @@ const getTaskById = async (req, res, next) => {
     const taskId = req.params.id;
     const { id: userId, role: userRole } = req.user;
 
-    const task = await taskService.getTaskById(taskId, userId, userRole);
+    const task = await taskService.getTaskById(taskId, userId, userRole, req);
 
     res.status(200).json({
       success: true,
@@ -61,7 +62,7 @@ const createTask = async (req, res, next) => {
 
     taskData.createdBy = userId;
 
-    const task = await taskService.createTask(taskData);
+    const task = await taskService.createTask(taskData, req);
 
     res.status(201).json({
       success: true,
@@ -81,7 +82,7 @@ const updateTask = async (req, res, next) => {
     const updateData = req.body;
     const { id: userId, role: userRole } = req.user;
 
-    const task = await taskService.updateTask(taskId, updateData, userId, userRole);
+    const task = await taskService.updateTask(taskId, updateData, userId, userRole, req);
 
     res.status(200).json({
       success: true,
@@ -100,7 +101,7 @@ const deleteTask = async (req, res, next) => {
     const taskId = req.params.id;
     const { id: userId, role: userRole } = req.user;
 
-    await taskService.deleteTask(taskId, userId, userRole);
+    await taskService.deleteTask(taskId, userId, userRole, req);
 
     res.status(200).json({
       success: true,
@@ -120,7 +121,7 @@ const assignTask = async (req, res, next) => {
     const { userId } = req.body;
     const { id: assignerId, role: assignerRole } = req.user;
 
-    const task = await taskService.assignTask(taskId, userId, assignerId, assignerRole);
+    const task = await taskService.assignTask(taskId, userId, assignerId, assignerRole, req);
 
     res.status(200).json({
       success: true,
@@ -137,5 +138,15 @@ module.exports = {
   createTask,
   updateTask,
   deleteTask,
-  assignTask
+  assignTask,
+  // GET /tasks/summary?limit=10 - AI generated summary of newest tasks
+  getTasksSummary: async (req, res, next) => {
+    try {
+      const limit = Math.max(1, Math.min(parseInt(req.query.limit || '10', 10), 50));
+      const summary = await taskSummaryService.getSummaryOfNewestTasks(limit, req);
+      res.status(200).json({ success: true, data: summary });
+    } catch (error) {
+      next(error);
+    }
+  }
 };

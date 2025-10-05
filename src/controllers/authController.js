@@ -12,7 +12,7 @@ const register = async (req, res, next) => {
   try {
     const userData = req.body;
 
-    const result = await authService.register(userData);
+    const result = await authService.register(userData, req);
 
     res.status(201).json({
       success: true,
@@ -33,7 +33,7 @@ const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const result = await authService.login(email, password);
+    const result = await authService.login(email, password, req);
 
     res.status(200).json({
       success: true,

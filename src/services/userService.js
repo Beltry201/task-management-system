@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const AppError = require('../utils/AppError');
+const logger = require('../utils/logger');
 const userRepository = require('../repositories/userRepository');
 const taskRepository = require('../repositories/taskRepository');
 
@@ -11,7 +12,7 @@ const taskRepository = require('../repositories/taskRepository');
  * @param {string} requesterRole - Role of the user making the request
  * @returns {Object} Object with paginated users and pagination info
  */
-const getUsers = async ({ page, limit, role, sortBy, order }, requesterId, requesterRole) => {
+const getUsers = async ({ page, limit, role, sortBy, order }, requesterId, requesterRole, req = null) => {
   if (requesterRole !== 'admin') {
     throw new AppError('Not authorized to list users', 403);
   }
@@ -20,6 +21,13 @@ const getUsers = async ({ page, limit, role, sortBy, order }, requesterId, reque
   const users = await userRepository.findAll({ limit, offset, role, sortBy, order });
   const total = await userRepository.count({ role });
   const totalPages = Math.ceil(total / limit);
+
+  logger.logEvent('USERS_RETRIEVED', {
+    count: users.length,
+    total,
+    page,
+    filters: { role }
+  }, req);
 
   return {
     users,
@@ -39,17 +47,21 @@ const getUsers = async ({ page, limit, role, sortBy, order }, requesterId, reque
  * @param {string} requesterRole - Role of the user making the request
  * @returns {Object} User object without password
  */
-const getUserById = async (userId, requesterId, requesterRole) => {
+const getUserById = async (userId, requesterId, requesterRole, req = null) => {
   const user = await userRepository.findById(userId);
   if (!user) {
     throw new AppError('User not found', 404);
   }
 
   if (requesterRole === 'user' && userId !== requesterId) {
+    logger.logEvent('USER_ACCESS_DENIED', { userId, requesterId, reason: 'unauthorized_access' }, req);
     throw new AppError('Not authorized to view this user', 403);
   }
 
   const { password_hash, ...userWithoutPassword } = user;
+
+  logger.logEvent('USER_RETRIEVED', { userId, requesterId }, req);
+
   return userWithoutPassword;
 };
 
@@ -59,13 +71,14 @@ const getUserById = async (userId, requesterId, requesterRole) => {
  * @param {string} creatorRole - Role of the user creating the new user
  * @returns {Object} Created user without password
  */
-const createUser = async ({ name, email, password, phoneNumber, address, role }, creatorRole) => {
+const createUser = async ({ name, email, password, phoneNumber, address, role }, creatorRole, req = null) => {
   if (creatorRole !== 'admin') {
     throw new AppError('Not authorized to create users', 403);
   }
 
   const existingUser = await userRepository.findByEmail(email);
   if (existingUser) {
+    logger.logEvent('USER_CREATION_FAILED', { reason: 'email_exists', email }, req);
     throw new AppError('Email already registered', 409);
   }
 
@@ -98,6 +111,13 @@ const createUser = async ({ name, email, password, phoneNumber, address, role },
   };
 
   const createdUser = await userRepository.create(userData);
+
+  logger.logEvent('USER_CREATED', {
+    userId: createdUser.id,
+    email: createdUser.email,
+    role: createdUser.role
+  }, req);
+
   return createdUser;
 };
 
@@ -109,13 +129,14 @@ const createUser = async ({ name, email, password, phoneNumber, address, role },
  * @param {string} requesterRole - Role of the user making the request
  * @returns {Object} Updated user without password
  */
-const updateUser = async (userId, updateData, requesterId, requesterRole) => {
+const updateUser = async (userId, updateData, requesterId, requesterRole, req = null) => {
   const existingUser = await userRepository.findById(userId);
   if (!existingUser) {
     throw new AppError('User not found', 404);
   };
 
   if (requesterRole === 'user' && userId !== requesterId) {
+    logger.logEvent('USER_UPDATE_DENIED', { userId, requesterId, reason: 'unauthorized_update' }, req);
     throw new AppError('Not authorized to update this user', 403);
   }
 
@@ -126,6 +147,7 @@ const updateUser = async (userId, updateData, requesterId, requesterRole) => {
   if (updateData.email && updateData.email !== existingUser.email) {
     const emailExists = await userRepository.findByEmail(updateData.email);
     if (emailExists) {
+      logger.logEvent('USER_UPDATE_FAILED', { userId, reason: 'email_exists', email: updateData.email }, req);
       throw new AppError('Email already in use', 409);
     }
   }
@@ -156,6 +178,13 @@ const updateUser = async (userId, updateData, requesterId, requesterRole) => {
   }
 
   const updatedUser = await userRepository.update(userId, updateData);
+
+  logger.logEvent('USER_UPDATED', {
+    userId,
+    requesterId,
+    updatedFields: Object.keys(updateData)
+  }, req);
+
   return updatedUser;
 };
 
@@ -166,12 +195,13 @@ const updateUser = async (userId, updateData, requesterId, requesterRole) => {
  * @param {string} requesterRole - Role of the user making the request
  * @returns {string} Success message
  */
-const deleteUser = async (userId, requesterId, requesterRole) => {
+const deleteUser = async (userId, requesterId, requesterRole, req = null) => {
   if (requesterRole !== 'admin') {
     throw new AppError('Not authorized to delete users', 403);
   }
 
   if (userId === requesterId) {
+    logger.logEvent('USER_DELETE_FAILED', { userId, reason: 'self_deletion' }, req);
     throw new AppError('Cannot delete your own account', 400);
   }
 
@@ -181,6 +211,9 @@ const deleteUser = async (userId, requesterId, requesterRole) => {
   }
 
   await userRepository.deleteById(userId);
+
+  logger.logEvent('USER_DELETED', { userId, deletedBy: requesterId }, req);
+
   return 'User deleted successfully';
 };
 
@@ -192,7 +225,7 @@ const deleteUser = async (userId, requesterId, requesterRole) => {
  * @param {string} requesterRole - Role of the user making the request
  * @returns {Object} Object with paginated tasks and pagination info
  */
-const getUserTasks = async (userId, { page, limit }, requesterId, requesterRole) => {
+const getUserTasks = async (userId, { page, limit }, requesterId, requesterRole, req = null) => {
   if (requesterRole === 'user' && userId !== requesterId) {
     throw new AppError('Not authorized to view this user\'s tasks', 403);
   }
@@ -206,6 +239,13 @@ const getUserTasks = async (userId, { page, limit }, requesterId, requesterRole)
   const tasks = await taskRepository.findByUserId(userId, { limit, offset });
   const total = await taskRepository.countByUserId(userId);
   const totalPages = Math.ceil(total / limit);
+
+  logger.logEvent('USER_TASKS_RETRIEVED', {
+    userId,
+    requesterId,
+    count: tasks.length,
+    total
+  }, req);
 
   return {
     tasks,

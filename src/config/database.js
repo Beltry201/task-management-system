@@ -1,22 +1,26 @@
 const { Pool } = require('pg');
+const env = require('./env');
 
 /**
  * PostgreSQL connection pool configuration
  * Optimized for serverless environments
  */
+const ssl = env.databaseSsl
+  ? { rejectUnauthorized: false }
+  : false;
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 2, // Serverless optimization - limit concurrent connections
-  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
-  connectionTimeoutMillis: 2000, // Timeout after 2 seconds if no connection available
+  connectionString: env.databaseUrl,
+  ssl: false, // Force SSL to false for local development
+  max: 2,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 });
 
-// Error event listener
 pool.on('error', (err) => {
   console.error('Unexpected error on idle client', err);
 });
 
-// Connect event listener
 pool.on('connect', () => {
   console.log('Successfully connected to PostgreSQL database');
 });

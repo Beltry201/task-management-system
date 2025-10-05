@@ -1,6 +1,7 @@
 const taskRepository = require('../repositories/taskRepository');
 const userRepository = require('../repositories/userRepository');
 const AppError = require('../utils/AppError');
+const logger = require('../utils/logger');
 const { generateUuid } = taskRepository;
 
 /**
@@ -19,7 +20,7 @@ function mapSortField(sortBy) {
 /**
  * Get tasks with filtering and pagination
  */
-const getTasks = async ({ page, limit, status, priority, assignedTo, sortBy, order, userId, userRole }) => {
+const getTasks = async ({ page, limit, status, priority, assignedTo, sortBy, order, userId, userRole }, req = null) => {
   try {
     const safePage = Number.isInteger(Number(page)) && Number(page) > 0 ? Number(page) : 1;
     const safeLimit = Number.isInteger(Number(limit)) && Number(limit) > 0 && Number(limit) <= 100 ? Number(limit) : 10;
@@ -74,6 +75,13 @@ const getTasks = async ({ page, limit, status, priority, assignedTo, sortBy, ord
 
     const totalPages = Math.ceil(total / safeLimit);
 
+    logger.logEvent('TASKS_RETRIEVED', {
+      count: tasks.length,
+      total,
+      page: safePage,
+      filters: { status, priority, assignedTo }
+    }, req);
+
     return {
       tasks,
       pagination: {
@@ -91,7 +99,7 @@ const getTasks = async ({ page, limit, status, priority, assignedTo, sortBy, ord
 /**
  * Get task by ID with authorization check
  */
-const getTaskById = async (taskId, userId, userRole) => {
+const getTaskById = async (taskId, userId, userRole, req = null) => {
   try {
     const task = await taskRepository.findById(taskId);
 
@@ -102,9 +110,12 @@ const getTaskById = async (taskId, userId, userRole) => {
     if (userRole === 'user') {
       const canAccess = task.created_by === userId || task.assigned_to === userId;
       if (!canAccess) {
+        logger.logEvent('TASK_ACCESS_DENIED', { taskId, userId, reason: 'unauthorized_access' }, req);
         throw new AppError('Not authorized to view this task', 403);
       }
     }
+
+    logger.logEvent('TASK_RETRIEVED', { taskId, userId }, req);
 
     return task;
   } catch (error) {
@@ -115,7 +126,7 @@ const getTaskById = async (taskId, userId, userRole) => {
 /**
  * Create new task
  */
-const createTask = async ({ title, description, status, priority, dueDate, assignedTo, createdBy }) => {
+const createTask = async ({ title, description, status, priority, dueDate, assignedTo, createdBy }, req = null) => {
   try {
     if (dueDate && new Date(dueDate) <= new Date()) {
       throw new AppError('Due date must be in the future', 400);
@@ -141,6 +152,14 @@ const createTask = async ({ title, description, status, priority, dueDate, assig
     };
 
     const createdTask = await taskRepository.create(taskData);
+
+    logger.logEvent('TASK_CREATED', {
+      taskId: createdTask.id,
+      title: createdTask.title,
+      createdBy,
+      assignedTo: createdTask.assigned_to
+    }, req);
+
     return createdTask;
   } catch (error) {
     throw error;
@@ -150,7 +169,7 @@ const createTask = async ({ title, description, status, priority, dueDate, assig
 /**
  * Update task with authorization and validation checks
  */
-const updateTask = async (taskId, updateData, userId, userRole) => {
+const updateTask = async (taskId, updateData, userId, userRole, req = null) => {
   try {
     const existingTask = await taskRepository.findById(taskId);
 
@@ -161,6 +180,7 @@ const updateTask = async (taskId, updateData, userId, userRole) => {
     if (userRole === 'user') {
       const canUpdate = existingTask.created_by === userId || existingTask.assigned_to === userId;
       if (!canUpdate) {
+        logger.logEvent('TASK_UPDATE_DENIED', { taskId, userId, reason: 'unauthorized_update' }, req);
         throw new AppError('Not authorized to update this task', 403);
       }
 
@@ -194,6 +214,13 @@ const updateTask = async (taskId, updateData, userId, userRole) => {
     });
 
     const updatedTask = await taskRepository.update(taskId, dbUpdateData);
+
+    logger.logEvent('TASK_UPDATED', {
+      taskId,
+      userId,
+      updatedFields: Object.keys(updateData)
+    }, req);
+
     return updatedTask;
   } catch (error) {
     throw error;
@@ -203,7 +230,7 @@ const updateTask = async (taskId, updateData, userId, userRole) => {
 /**
  * Delete task with authorization check
  */
-const deleteTask = async (taskId, userId, userRole) => {
+const deleteTask = async (taskId, userId, userRole, req = null) => {
   try {
     const existingTask = await taskRepository.findById(taskId);
 
@@ -214,11 +241,15 @@ const deleteTask = async (taskId, userId, userRole) => {
     if (userRole === 'user') {
       const canDelete = existingTask.created_by === userId;
       if (!canDelete) {
+        logger.logEvent('TASK_DELETE_DENIED', { taskId, userId, reason: 'unauthorized_delete' }, req);
         throw new AppError('Not authorized to delete this task', 403);
       }
     }
 
     const deleted = await taskRepository.delete(taskId);
+
+    logger.logEvent('TASK_DELETED', { taskId, userId }, req);
+
     return { success: deleted };
   } catch (error) {
     throw error;
@@ -228,7 +259,7 @@ const deleteTask = async (taskId, userId, userRole) => {
 /**
  * Assign task to user
  */
-const assignTask = async (taskId, userId, assignerId, assignerRole) => {
+const assignTask = async (taskId, userId, assignerId, assignerRole, req = null) => {
   try {
     const task = await taskRepository.findById(taskId);
     if (!task) {
@@ -243,11 +274,19 @@ const assignTask = async (taskId, userId, assignerId, assignerRole) => {
     if (assignerRole === 'user') {
       const canAssign = task.created_by === assignerId;
       if (!canAssign) {
+        logger.logEvent('TASK_ASSIGN_DENIED', { taskId, userId, assignerId, reason: 'unauthorized_assign' }, req);
         throw new AppError('Not authorized to assign this task', 403);
       }
     }
 
     const updatedTask = await taskRepository.update(taskId, { assigned_to: userId });
+
+    logger.logEvent('TASK_ASSIGNED', {
+      taskId,
+      assignedTo: userId,
+      assignerId
+    }, req);
+
     return updatedTask;
   } catch (error) {
     throw error;

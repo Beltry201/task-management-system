@@ -14,7 +14,8 @@ const getAllUsers = async (req, res, next) => {
     const result = await userService.getUsers(
       { page: parseInt(page), limit: parseInt(limit), role, sortBy, order },
       requesterId,
-      requesterRole
+      requesterRole,
+      req
     );
 
     res.status(200).json({
@@ -37,7 +38,7 @@ const getUserById = async (req, res, next) => {
     const { id: userId } = req.params;
     const { id: requesterId, role: requesterRole } = req.user;
 
-    const user = await userService.getUserById(userId, requesterId, requesterRole);
+    const user = await userService.getUserById(userId, requesterId, requesterRole, req);
 
     res.status(200).json({
       success: true,
@@ -59,7 +60,7 @@ const createUser = async (req, res, next) => {
     const userData = req.body;
     const { role: creatorRole } = req.user;
 
-    const user = await userService.createUser(userData, creatorRole);
+    const user = await userService.createUser(userData, creatorRole, req);
 
     res.status(201).json({
       success: true,
@@ -82,7 +83,7 @@ const updateUser = async (req, res, next) => {
     const updateData = req.body;
     const { id: requesterId, role: requesterRole } = req.user;
 
-    const user = await userService.updateUser(userId, updateData, requesterId, requesterRole);
+    const user = await userService.updateUser(userId, updateData, requesterId, requesterRole, req);
 
     res.status(200).json({
       success: true,
@@ -104,7 +105,7 @@ const deleteUser = async (req, res, next) => {
     const { id: userId } = req.params;
     const { id: requesterId, role: requesterRole } = req.user;
 
-    const message = await userService.deleteUser(userId, requesterId, requesterRole);
+    const message = await userService.deleteUser(userId, requesterId, requesterRole, req);
 
     res.status(200).json({
       success: true,
@@ -131,7 +132,8 @@ const getUserTasks = async (req, res, next) => {
       userId,
       { page: parseInt(page), limit: parseInt(limit) },
       requesterId,
-      requesterRole
+      requesterRole,
+      req
     );
 
     res.status(200).json({

@@ -15,6 +15,9 @@ const { assignTaskSchema } = require('../validators/userValidator');
 // All routes require authentication
 router.use(authenticate);
 
+// GET /tasks/summary?limit=10 - AI summary of newest tasks (define before :id routes)
+router.get('/summary', taskController.getTasksSummary);
+
 // GET /tasks - List all tasks with filtering and pagination
 router.get('/', validateQuery(taskQuerySchema), taskController.getAllTasks);
 

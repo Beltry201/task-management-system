@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [ dev, main ]
+  pull_request:
+    branches: [ dev, main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: taskdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    env:
+      # Use local Postgres service for CI (standard practice)
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/taskdb
+      DATABASE_SSL: false
+      JWT_SECRET: test-jwt-secret-key-for-testing-only
+      JWT_EXPIRES_IN: 7d
+      OPENAI_API_KEY: ""
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Run migrations
+        run: npm run migrate
+      - name: Run tests with coverage
+        run: npm test -- --runInBand
+      - name: Upload coverage report
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage
+
+

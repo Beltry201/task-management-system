@@ -5,8 +5,11 @@ const authRoutes = require('./routes/auth');
 const taskRoutes = require('./routes/tasks');
 const userRoutes = require('./routes/users');
 const errorHandler = require('./middleware/errorHandler');
+const requestLogger = require('./middleware/requestLogger');
 
+// Middlewares
 app.use(express.json());
+app.use(requestLogger);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Task Management API', version: '1.0.0' });
