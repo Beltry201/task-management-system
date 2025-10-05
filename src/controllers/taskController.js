@@ -1,4 +1,5 @@
 const taskService = require('../services/taskService');
+const taskSummaryService = require('../services/taskSummaryService');
 
 /**
  * Get all tasks with filtering and pagination
@@ -137,5 +138,15 @@ module.exports = {
   createTask,
   updateTask,
   deleteTask,
-  assignTask
+  assignTask,
+  // GET /tasks/summary?limit=10 - AI generated summary of newest tasks
+  getTasksSummary: async (req, res, next) => {
+    try {
+      const limit = Math.max(1, Math.min(parseInt(req.query.limit || '10', 10), 50));
+      const summary = await taskSummaryService.getSummaryOfNewestTasks(limit, req);
+      res.status(200).json({ success: true, data: summary });
+    } catch (error) {
+      next(error);
+    }
+  }
 };

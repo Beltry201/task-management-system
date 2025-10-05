@@ -3,6 +3,7 @@ const router = express.Router();
 
 const taskController = require('../controllers/taskController');
 const { authenticate } = require('../middleware/auth');
+const taskController = require('../controllers/taskController');
 const validateRequest = require('../middleware/validateRequest');
 const validateQuery = require('../middleware/validateQuery');
 const { createTaskSchema, updateTaskSchema, taskQuerySchema } = require('../validators/taskValidator');
@@ -14,6 +15,9 @@ const { assignTaskSchema } = require('../validators/userValidator');
 
 // All routes require authentication
 router.use(authenticate);
+
+// GET /tasks/summary?limit=10 - AI summary of newest tasks (define before :id routes)
+router.get('/summary', taskController.getTasksSummary);
 
 // GET /tasks - List all tasks with filtering and pagination
 router.get('/', validateQuery(taskQuerySchema), taskController.getAllTasks);

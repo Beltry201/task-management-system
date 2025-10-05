@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const env = require('../config/env');
 
 const userRepository = require('../repositories/userRepository');
 const AppError = require('../utils/AppError');
@@ -111,8 +112,8 @@ const login = async (email, password, req = null) => {
  */
 const generateToken = (payload) => {
   try {
-    return jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+    return jwt.sign(payload, env.jwtSecret, {
+      expiresIn: env.jwtExpiresIn
     });
   } catch (error) {
     throw new AppError('Token generation failed', 500);
