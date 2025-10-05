@@ -44,11 +44,7 @@ provider:
         - OPTIONS
       allowCredentials: false
       maxAge: 6000
-    
-    # Throttling to prevent abuse
-    throttle:
-      burstLimit: 200   # Max concurrent requests
-      rateLimit: 100    # Requests per second
+  
 
   # Memory and timeout settings
   memorySize: 512 # MB (adjust based on needs)
